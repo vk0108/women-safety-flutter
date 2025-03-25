@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:my_new_app/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'community_forum.dart';
 import 'safety_tools_screen.dart';
 
@@ -13,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String name = "";
   String phone = "";
   String emergency1 = "";
   String emergency2 = "";
@@ -28,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     setState(() {
+      name = prefs.getString('name') ?? "";
       phone = prefs.getString('phone') ?? "";
       emergency1 = prefs.getString('emergency1') ?? "";
       emergency2 = prefs.getString('emergency2') ?? "";
@@ -54,38 +58,47 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      DocumentSnapshot userDoc =
-      await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('id', isEqualTo: uid)
+              .get();
 
-      if (userDoc.exists) {
-        Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
-        if (userData != null) {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
+      for (var doc in querySnapshot.docs) {
+        if (doc.exists) {
+          Map<String, dynamic>? userData = doc.data() as Map<String, dynamic>?;
+          if (userData != null) {
+            SharedPreferences prefs = await SharedPreferences.getInstance();
 
-          setState(() {
-            phone = userData['phone'] ?? "";
-            emergency1 = userData['emergency1'] ?? "";
-            emergency2 = userData['emergency2'] ?? "";
-            emergency3 = userData['emergency3'] ?? "";
-          });
+            setState(() {
+              name = userData['name'] ?? "";
+              phone = userData['phone'] ?? "";
+              emergency1 = userData['emergency1'] ?? "";
+              emergency2 = userData['emergency2'] ?? "";
+              emergency3 = userData['emergency3'] ?? "";
+            });
 
-          await prefs.setString('phone', phone);
-          await prefs.setString('emergency1', emergency1);
-          await prefs.setString('emergency2', emergency2);
-          await prefs.setString('emergency3', emergency3);
+            await prefs.setString('name', name);
+            await prefs.setString('phone', phone);
+            await prefs.setString('emergency1', emergency1);
+            await prefs.setString('emergency2', emergency2);
+            await prefs.setString('emergency3', emergency3);
 
-          print("✅ Emergency contacts fetched and stored locally!");
+            print("✅ Emergency contacts fetched and stored locally!");
+          }
+          break;
+        } else {
+          print("❌ User document does not exist.");
         }
-      } else {
-        print("❌ User document does not exist.");
       }
     } catch (e) {
       print("🔥 Error fetching emergency contacts: $e");
     }
   }
 
-  void _triggerSOS() {
+  void _triggerSOS() async {
     print("🚨 SOS Triggered!");
+    print("User name: $name");
     print("User Phone: $phone");
     print("Emergency Contact 1: $emergency1");
     print("Emergency Contact 2: $emergency2");
@@ -95,15 +108,23 @@ class _HomeScreenState extends State<HomeScreen> {
       print("❌ Error: Emergency contacts are missing!");
       return;
     }
+
+    List<String> phoneNumbers = [
+      '+91${emergency1}',
+      '+91${emergency2}',
+    ]; // Add multiple numbers
+
+    String locationLink = await twilio.getCurrentLocation();
+    String message =
+        "From $name\n Hey! am in danger Here's my current location: $locationLink";
+
+    await twilio.sendSms(phoneNumbers, message);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Home"),
-        backgroundColor: Colors.purple,
-      ),
+      appBar: AppBar(title: const Text("Home"), backgroundColor: Colors.purple),
       body: Column(
         children: [
           Padding(
@@ -141,9 +162,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text(
                       "SOS",
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -157,7 +179,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const CommunityForumScreen()),
+                      builder: (context) => const CommunityForumScreen(),
+                    ),
                   );
                 },
                 child: _buildButton("Community Forum"),
@@ -167,7 +190,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const SafetyToolsScreen()),
+                      builder: (context) => const SafetyToolsScreen(),
+                    ),
                   );
                 },
                 child: _buildButton("Safety Tools & Tips"),

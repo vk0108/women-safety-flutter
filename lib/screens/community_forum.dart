@@ -11,20 +11,68 @@ class CommunityForumScreen extends StatefulWidget {
 }
 
 class CommunityForumScreenState extends State<CommunityForumScreen> {
-  final TextEditingController _reportController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _incidentController = TextEditingController();
   final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   // Submit incident report to Firestore
   void _submitReport() async {
-    if (_reportController.text.trim().isNotEmpty) {
+    if (_locationController.text.trim().isNotEmpty &&
+        _incidentController.text.trim().isNotEmpty) {
       await FirebaseFirestore.instance.collection('community_reports').add({
         'userId': _currentUserId,
-        'message': _reportController.text.trim(),
+        'location': _locationController.text.trim(),
+        'message': _incidentController.text.trim(),
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      _reportController.clear();
+      _locationController.clear();
+      _incidentController.clear();
+      Navigator.of(context).pop(); // Close the dialog
     }
+  }
+
+  // Open the "New Incident" dialog
+  void _showNewIncidentDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Report a New Incident"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _locationController,
+                decoration: const InputDecoration(
+                  labelText: "Location",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _incidentController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: "Incident Details",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: _submitReport,
+              child: const Text("Submit"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Format Firestore timestamp
@@ -36,19 +84,27 @@ class CommunityForumScreenState extends State<CommunityForumScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.pink[50], // Light pink background
       appBar: AppBar(
-        title: const Text("Community Forum"),
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.pink, // Pink theme
+        title: const Text(
+          "📝 Community Forum",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Roboto', // Use a stylish font
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          // Display latest 10 reports
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('community_reports')
                   .orderBy('timestamp', descending: true)
-                  .limit(10)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -70,14 +126,13 @@ class CommunityForumScreenState extends State<CommunityForumScreen> {
                     final bool isMine = data['userId'] == _currentUserId;
 
                     return Align(
-                      alignment: isMine
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
+                      alignment:
+                      isMine ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 5),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isMine ? Colors.purple[200] : Colors.grey[300],
+                          color: isMine ? Colors.pink[200] : Colors.grey[300],
                           borderRadius: BorderRadius.circular(12),
                         ),
                         constraints: BoxConstraints(
@@ -86,11 +141,25 @@ class CommunityForumScreenState extends State<CommunityForumScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Display Location
+                            Text(
+                              "📍 ${data['location'] ?? 'Unknown Location'}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.pink.shade900,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+
+                            // Display Incident Message
                             Text(
                               data['message'] ?? '',
                               style: const TextStyle(fontSize: 16),
                             ),
                             const SizedBox(height: 5),
+
+                            // Display Timestamp
                             Text(
                               _formatTimestamp(data['timestamp']),
                               style: const TextStyle(
@@ -107,30 +176,28 @@ class CommunityForumScreenState extends State<CommunityForumScreen> {
               },
             ),
           ),
-
-          // Message input
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _reportController,
-                    decoration: const InputDecoration(
-                      hintText: "Report an incident anonymously...",
-                      border: InputBorder.none,
-                    ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.pink, // Pink button color
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // Rounded corners
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.purple),
-                  onPressed: _submitReport,
+                onPressed: _showNewIncidentDialog,
+                child: const Text(
+                  "+ New Incident",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ],

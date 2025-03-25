@@ -1,32 +1,123 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'community_forum.dart';
 import 'safety_tools_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String phone = "";
+  String emergency1 = "";
+  String emergency2 = "";
+  String emergency3 = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmergencyContacts();
+  }
+
+  Future<void> _loadEmergencyContacts() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      phone = prefs.getString('phone') ?? "";
+      emergency1 = prefs.getString('emergency1') ?? "";
+      emergency2 = prefs.getString('emergency2') ?? "";
+      emergency3 = prefs.getString('emergency3') ?? "";
+    });
+
+    print("📥 Loaded from SharedPreferences:");
+    print("User Phone: $phone");
+    print("Emergency Contact 1: $emergency1");
+    print("Emergency Contact 2: $emergency2");
+    print("Emergency Contact 3: $emergency3");
+
+    if (phone.isEmpty || emergency1.isEmpty) {
+      print("❗ Data missing in SharedPreferences. Fetching from Firebase...");
+      await _fetchAndStoreEmergencyContacts();
+    }
+  }
+
+  Future<void> _fetchAndStoreEmergencyContacts() async {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      print("❌ No user logged in.");
+      return;
+    }
+
+    try {
+      DocumentSnapshot userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (userDoc.exists) {
+        Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
+        if (userData != null) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+
+          setState(() {
+            phone = userData['phone'] ?? "";
+            emergency1 = userData['emergency1'] ?? "";
+            emergency2 = userData['emergency2'] ?? "";
+            emergency3 = userData['emergency3'] ?? "";
+          });
+
+          await prefs.setString('phone', phone);
+          await prefs.setString('emergency1', emergency1);
+          await prefs.setString('emergency2', emergency2);
+          await prefs.setString('emergency3', emergency3);
+
+          print("✅ Emergency contacts fetched and stored locally!");
+        }
+      } else {
+        print("❌ User document does not exist.");
+      }
+    } catch (e) {
+      print("🔥 Error fetching emergency contacts: $e");
+    }
+  }
+
+  void _triggerSOS() {
+    print("🚨 SOS Triggered!");
+    print("User Phone: $phone");
+    print("Emergency Contact 1: $emergency1");
+    print("Emergency Contact 2: $emergency2");
+    print("Emergency Contact 3: $emergency3");
+
+    if (phone.isEmpty || emergency1.isEmpty) {
+      print("❌ Error: Emergency contacts are missing!");
+      return;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Home"),
+        title: const Text("Home"),
         backgroundColor: Colors.purple,
       ),
       body: Column(
         children: [
-          // 🔹 MAP OPTION (Safe Route Suggestion) - NOW AT TOP
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
-                TextField(
+                const TextField(
                   decoration: InputDecoration(
                     labelText: "From",
                     border: OutlineInputBorder(),
                   ),
                 ),
-                SizedBox(height: 10),
-                TextField(
+                const SizedBox(height: 10),
+                const TextField(
                   decoration: InputDecoration(
                     labelText: "To",
                     border: OutlineInputBorder(),
@@ -35,98 +126,80 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
-
-          // 🔴 SOS BUTTON - CENTERED
           Expanded(
             child: Center(
               child: GestureDetector(
-                onTap: () {
-                  // Implement SOS button functionality
-                },
+                onTap: _triggerSOS,
                 child: Container(
                   width: 100,
                   height: 100,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
-                  child: Center(
+                  child: const Center(
                     child: Text(
                       "SOS",
-                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-
-          // 📌 COMMUNITY FORUM & SAFETY TOOLS BUTTONS - NOW AT BOTTOM
           Column(
             children: [
               GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => CommunityForumScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const CommunityForumScreen()),
                   );
                 },
-                child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                  padding: EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color.fromRGBO(128, 128, 128, 0.3),
-                        blurRadius: 5,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      "Community Forum",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
+                child: _buildButton("Community Forum"),
               ),
               GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SafetyToolsScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const SafetyToolsScreen()),
                   );
                 },
-                child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  padding: EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color.fromRGBO(128, 128, 128, 0.3),
-                        blurRadius: 5,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      "Safety Tools & Tips",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
+                child: _buildButton("Safety Tools & Tips"),
               ),
             ],
           ),
-
-          SizedBox(height: 20), // Extra space at bottom for better UI
+          const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildButton(String text) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(128, 128, 128, 0.3),
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

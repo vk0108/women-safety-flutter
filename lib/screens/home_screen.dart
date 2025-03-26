@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:my_new_app/main.dart';
 import 'package:my_new_app/screens/maps.screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -126,11 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   int _countdown = 3; // Start from 3
-  bool _isCounting = false;
 
   void _startCountdown(List<String> phoneNumbers, String message) {
     setState(() {
-      _isCounting = true;
       _countdown = 3; // Reset countdown
     });
 
@@ -153,6 +152,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool sosClicked = false;
 
+  final TextEditingController sourceController = TextEditingController();
+  final TextEditingController destinationController = TextEditingController();
+  final String apiKey =
+      "AIzaSyDoKln5E27FzBbZsE3cruHXK8O0VzGsfsE"; // Replace with your API key
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,111 +164,161 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text("Home"),
         backgroundColor: Colors.pink.shade100,
       ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
+      body: Container(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
+                  ),
+                  child: Column(
+                    children: [
+                      GooglePlaceAutoCompleteTextField(
+                        textEditingController: sourceController,
+                        googleAPIKey: apiKey,
+                        debounceTime: 800,
+                        // Optional: Adjust debounce time
+                        isLatLngRequired: true,
+                        // If you need latitude & longitude
+                        getPlaceDetailWithLatLng: (prediction) {
+                          print(
+                            "Latitude: ${prediction.lat}, Longitude: ${prediction.lng}",
+                          );
+                        },
+                        itemClick: (prediction) {
+                          sourceController.text = prediction.description!;
+                          sourceController
+                              .selection = TextSelection.fromPosition(
+                            TextPosition(offset: sourceController.text.length),
+                          );
+                        },
+                        inputDecoration: InputDecoration(
+                          hintText: "Search source...",
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+                      GooglePlaceAutoCompleteTextField(
+                        textEditingController: destinationController,
+                        googleAPIKey: apiKey,
+                        debounceTime: 800,
+                        // Optional: Adjust debounce time
+                        isLatLngRequired: true,
+                        // If you need latitude & longitude
+                        getPlaceDetailWithLatLng: (prediction) {
+                          print(
+                            "Latitude: ${prediction.lat}, Longitude: ${prediction.lng}",
+                          );
+                        },
+                        itemClick: (prediction) {
+                          destinationController.text = prediction.description!;
+                          destinationController
+                              .selection = TextSelection.fromPosition(
+                            TextPosition(
+                              offset: destinationController.text.length,
+                            ),
+                          );
+                        },
+                        inputDecoration: InputDecoration(
+                          hintText: "Search destination...",
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => MapScreen(),
+                            ),
+                          );
+                        },
+                        child: Text('Navigate To Map'),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    const TextField(
-                      decoration: InputDecoration(
-                        labelText: "From",
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const TextField(
-                      decoration: InputDecoration(
-                        labelText: "To",
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) => MapScreen()),
-                        );
-                      },
-                      child: Text('Navigate To Map'),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Center(
-                  child: InkWell(
-                    onTap: _triggerSOS,
-                    splashColor: Colors.green,
-                    borderRadius: BorderRadius.circular(75),
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "SOS",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Center(
+                    child: InkWell(
+                      onTap: _triggerSOS,
+                      splashColor: Colors.green,
+                      borderRadius: BorderRadius.circular(75),
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "SOS",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CommunityForumScreen(),
-                        ),
-                      );
-                    },
-                    child: _buildButton("Community Forum"),
+                Align(
+                  alignment: AlignmentDirectional.bottomCenter,
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => const CommunityForumScreen(),
+                            ),
+                          );
+                        },
+                        child: _buildButton("Community Forum"),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SafetyToolsScreen(),
+                            ),
+                          );
+                        },
+                        child: _buildButton("Safety Tools & Tips"),
+                      ),
+                    ],
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SafetyToolsScreen(),
-                        ),
-                      );
-                    },
-                    child: _buildButton("Safety Tools & Tips"),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+            if (sosClicked)
+              Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: Text(
+                    '$_countdown',
+                    style: TextStyle(fontSize: 50, color: Colors.white),
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-          if (sosClicked)
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.black.withOpacity(0.5),
-              child: Center(
-                child: Text(
-                  '$_countdown',
-                  style: TextStyle(fontSize: 50, color: Colors.white),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

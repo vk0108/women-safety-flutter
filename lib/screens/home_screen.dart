@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:my_new_app/main.dart';
+import 'package:my_new_app/screens/maps.screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'community_forum.dart';
@@ -183,6 +184,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         border: OutlineInputBorder(),
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => MapScreen()),
+                        );
+                      },
+                      child: Text('Navigate To Map'),
+                    ),
                   ],
                 ),
               ),
@@ -204,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           "SOS",
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 22,
+                            fontSize: 32,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

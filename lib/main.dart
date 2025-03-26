@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:my_new_app/screens/maps.screen.dart';
 import 'package:my_new_app/service/twillo.service.dart';
 
 import 'screens/home_screen.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignUpScreen(),
         '/home': (context) => const HomeScreen(),
         '/otp': (context) => const OTPVerificationScreen(),
+        '/map': (context) => MapScreen(),
       },
     );
   }

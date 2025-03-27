@@ -160,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false, // Prevents shrinking when keyboard opens
       appBar: AppBar(
         title: const Text("Home"),
         backgroundColor: Colors.pink.shade100,

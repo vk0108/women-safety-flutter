@@ -25,7 +25,7 @@ class _MapScreenState extends State<MapScreen> {
     final Canvas canvas = Canvas(pictureRecorder);
 
     final Paint paint = Paint()..color = color;
-    const double size = 24; // Size of marker
+    const double size = 16; // Size of marker
 
     // Draw the circle
     canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
@@ -47,9 +47,9 @@ class _MapScreenState extends State<MapScreen> {
     Set<Marker> markers = {};
 
     for (var crime in data) {
-      double latitude = crime['Latitude'];
-      double longitude = crime['Longitude'];
-      double crimeScore = crime['Crime_Score'];
+      double latitude = crime['latitude'];
+      double longitude = crime['longitude'];
+      double crimeScore = crime['crime_score'];
 
       // BitmapDescriptor markerColor =
       //     crimeScore < 0.5
